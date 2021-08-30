@@ -20,14 +20,14 @@ option(biosoup_install "Generate install target" ${biosoup_main_project})
 option(biosoup_build_tests "Build unit tests" ${biosoup_main_project})
 
 if (biosoup_build_tests)
-  find_package(GTest 1.10.0 QUIET)
+  find_package(GTest 1.11.0 QUIET)
   if (NOT GTest_FOUND)
     include(FetchContent)
 
     FetchContent_Declare(
       googletest
       GIT_REPOSITORY https://github.com/google/googletest
-      GIT_TAG release-1.10.0)
+      GIT_TAG release-1.11.0)
 
     FetchContent_GetProperties(googletest)
     if (NOT googletest_POPULATED)
@@ -88,3 +88,8 @@ if (biosoup_build_tests)
     biosoup
     GTest::Main)
 endif ()
+
+if (biosoup_build_benchmarks)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer") 
+  add_subdirectory(benchmark) 
+endif()
