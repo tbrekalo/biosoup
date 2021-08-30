@@ -1,0 +1,16 @@
+2021-08-30T23:06:01+02:00
+Running ./build/bin/Release/biosoup_benchmark
+Run on (12 X 3544.28 MHz CPU s)
+CPU Caches:
+  L1 Data 32 KiB (x6)
+  L1 Instruction 32 KiB (x6)
+  L2 Unified 512 KiB (x6)
+  L3 Unified 16384 KiB (x2)
+Load Average: 0.21, 0.23, 0.30
+-------------------------------------------------------------
+Benchmark                   Time             CPU   Iterations
+-------------------------------------------------------------
+BM_Constructor           9825 ns         9816 ns        70386
+BM_Constructor_exp      72904 ns        72840 ns         9638
+BM_Quality              12571 ns        12560 ns        55963
+BM_Quality_exp          12480 ns        12469 ns        56394

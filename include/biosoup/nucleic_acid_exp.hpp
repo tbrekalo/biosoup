@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <cstdint>
 #include <numeric>
 #include <stdexcept>
@@ -14,6 +15,7 @@
 namespace biosoup {
 namespace exp {
 
+/* clang-format off */
 constexpr static std::uint8_t kNucleotideCoder[] = {
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
     255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
@@ -26,6 +28,7 @@ constexpr static std::uint8_t kNucleotideCoder[] = {
     255, 3,   255, 255, 255, 255, 255, 255};
 
 constexpr static char kNucleotideDecoder[] = {'A', 'C', 'G', 'T'};
+/* clang-format on */
 
 class NucleicAcid {
  public:
@@ -41,7 +44,7 @@ class NucleicAcid {
         deflated_data(),
         inflated_len(data_len),
         is_reverse_complement(0) {
-    deflated_data.reserve(data_len / 32. + .999);
+    deflated_data.reserve(std::ceil(data_len / 32.));
     std::uint64_t block = 0;
     for (std::uint32_t i = 0; i < data_len; ++i) {
       std::uint64_t c = kNucleotideCoder[static_cast<std::uint8_t>(data[i])];
@@ -66,44 +69,54 @@ class NucleicAcid {
               std::uint32_t data_len, const char* quality,
               std::uint32_t quality_len)
       : NucleicAcid(name, name_len, data, data_len) {
-    deflated_quality.reserve(quality_len / 32. + .999);
-    qlvl.reserve(quality_len / 128. + .999);
+    deflated_quality.reserve(std::ceil(quality_len / 32.));
+    qlvl.reserve(std::ceil(quality_len / 128.));
 
     std::vector<std::uint8_t> levels;
-
+    std::vector<std::uint8_t> frequencies(128, 0);
     for (std::uint32_t i = 0; i < quality_len; i += 128U) {
       std::uint32_t j = std::min(i + 128U, quality_len);
+      std::fill(frequencies.begin(), frequencies.end(),
+                0);  // TODO: consider memset
 
-      std::vector<std::uint8_t> frequencies(128, 0);
       double mean = 0;
       std::uint8_t min = -1;
       std::uint8_t max = 0;
-      std::for_each(quality + i, quality + j, [&](char c) -> void {
-        std::uint8_t v = c - '!';
-        if (v < min) min = v;
-        if (v > max) max = v;
+
+      std::uint8_t mode = 0;
+      std::uint32_t mode_freq = 0;
+      for (std::uint32_t k = i; k < j; ++k) {
+        std::uint8_t v = quality[k] - '!';
+        if (v < min) {
+          min = v;
+        }
+
+        if (v > max) {
+          max = v;
+        }
+
         mean += v;
-        ++frequencies[v];
-      });
+        if (++frequencies[v] >= mode_freq) {
+          mode = v;
+        }
+      }
+
       mean /= j - i;
-      std::uint8_t mode =
-          std::max_element(frequencies.begin(), frequencies.end()) -
-          frequencies.begin();  // NOLINT
 
       if (mean < mode) {
-        double step = (mode - min) / 3;
-        levels.emplace_back(mode - 2 * step + .499);
-        levels.emplace_back(mode - step + .499);
+        double step = static_cast<double>(mode - min) / 3.0;
+        levels.emplace_back(std::round(mode - 2 * step));
+        levels.emplace_back(std::round(mode - step));
         levels.emplace_back(mode);
-        step = (max - mode) / 2;
-        levels.emplace_back(mode + step + .499);
+        step = static_cast<double>(max - mode) / 2.0;
+        levels.emplace_back(std::round(mode + step));
       } else {
-        double step = (mode - min) / 2;
-        levels.emplace_back(mode - step + .499);
+        double step = static_cast<double>(mode - min) / 2;
+        levels.emplace_back(std::round(mode - step));
         levels.emplace_back(mode);
-        step = (max - mode) / 3;
-        levels.emplace_back(mode + step + .499);
-        levels.emplace_back(mode + 2 * step + .499);
+        step = static_cast<double>(max - mode) / 3.0;
+        levels.emplace_back(std::round(mode + step));
+        levels.emplace_back(std::round(mode + 2 * step));
       }
 
       std::uint64_t block = 0;
@@ -128,7 +141,6 @@ class NucleicAcid {
         level |= it;
       }
       qlvl.emplace_back(level);
-
       levels.clear();
     }
   }
