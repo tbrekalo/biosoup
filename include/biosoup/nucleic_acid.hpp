@@ -110,7 +110,7 @@ class NucleicAcid {
 
   ~NucleicAcid() = default;
 
-  std::uint64_t Code(std::uint32_t i) const {
+  std::uint64_t Code(std::uint32_t i) const noexcept {
     std::uint64_t x = 0;
     if (is_reverse_complement) {
       i = inflated_len - i - 1;
@@ -119,7 +119,7 @@ class NucleicAcid {
     return ((deflated_data[i >> 5] >> ((i << 1) & 63)) & 3) ^ x;
   }
 
-  std::uint8_t Score(std::uint32_t i) const {
+  std::uint8_t Score(std::uint32_t i) const noexcept {
     if (is_reverse_complement) {
       i = inflated_len - i - 1;
     }
@@ -154,7 +154,7 @@ class NucleicAcid {
     return dst;
   }
 
-  void ReverseAndComplement() {   // Watson-Crick base pairing
+  void ReverseAndComplement() noexcept {   // Watson-Crick base pairing
     is_reverse_complement ^= 1;
   }
 

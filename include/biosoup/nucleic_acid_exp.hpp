@@ -4,6 +4,7 @@
 #define BIOSOUP_NUCLEIC_ACID_EXP_HPP_
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <cstdint>
@@ -69,15 +70,15 @@ class NucleicAcid {
               std::uint32_t data_len, const char* quality,
               std::uint32_t quality_len)
       : NucleicAcid(name, name_len, data, data_len) {
-    deflated_quality.reserve(std::ceil(quality_len / 32.));
-    qlvl.reserve(std::ceil(quality_len / 128.));
+    static auto freqs = FreqsBufType{};
+    static auto levels = LvlsBuftype{};
 
-    std::vector<std::uint8_t> levels;
-    std::vector<std::uint8_t> frequencies(128, 0);
-    for (std::uint32_t i = 0; i < quality_len; i += 128U) {
-      std::uint32_t j = std::min(i + 128U, quality_len);
-      std::fill(frequencies.begin(), frequencies.end(),
-                0);  // TODO: consider memset
+    deflated_quality.reserve(std::ceil(quality_len / 32.f));
+    qlvl.reserve(std::ceil(quality_len / static_cast<float>(kBlockSize)));
+
+    for (std::uint32_t i = 0; i < quality_len; i += kBlockSize) {
+      std::uint32_t j = std::min(i + kBlockSize, quality_len);
+      std::fill(freqs.begin(), freqs.end(), 0);
 
       double mean = 0;
       std::uint8_t min = -1;
@@ -96,7 +97,7 @@ class NucleicAcid {
         }
 
         mean += v;
-        if (++frequencies[v] >= mode_freq) {
+        if (++freqs[v] > mode_freq) {
           mode = v;
         }
       }
@@ -104,19 +105,19 @@ class NucleicAcid {
       mean /= j - i;
 
       if (mean < mode) {
-        double step = static_cast<double>(mode - min) / 3.0;
-        levels.emplace_back(std::round(mode - 2 * step));
-        levels.emplace_back(std::round(mode - step));
-        levels.emplace_back(mode);
-        step = static_cast<double>(max - mode) / 2.0;
-        levels.emplace_back(std::round(mode + step));
+        float step = static_cast<float>(mode - min) / 3.f;
+        levels[0] = std::round(mode - 2 * step);
+        levels[1] = std::round(mode - step);
+        levels[2] = mode;
+        step = static_cast<float>(max - mode) / 2.f;
+        levels[3] = std::round(mode + step);
       } else {
-        double step = static_cast<double>(mode - min) / 2;
-        levels.emplace_back(std::round(mode - step));
-        levels.emplace_back(mode);
-        step = static_cast<double>(max - mode) / 3.0;
-        levels.emplace_back(std::round(mode + step));
-        levels.emplace_back(std::round(mode + 2 * step));
+        float step = static_cast<float>(mode - min) / 2;
+        levels[0] = std::round(mode - step);
+        levels[1] = mode;
+        step = static_cast<float>(max - mode) / 3.f;
+        levels[2] = std::round(mode + step);
+        levels[3] = std::round(mode + 2 * step);
       }
 
       std::uint64_t block = 0;
@@ -141,7 +142,6 @@ class NucleicAcid {
         level |= it;
       }
       qlvl.emplace_back(level);
-      levels.clear();
     }
   }
 
@@ -153,7 +153,7 @@ class NucleicAcid {
 
   ~NucleicAcid() = default;
 
-  std::uint64_t Code(std::uint32_t i) const {
+  std::uint64_t Code(std::uint32_t i) const noexcept {
     std::uint64_t x = 0;
     if (is_reverse_complement) {
       i = inflated_len - i - 1;
@@ -162,7 +162,7 @@ class NucleicAcid {
     return ((deflated_data[i >> 5] >> ((i << 1) & 63)) & 3) ^ x;
   }
 
-  std::uint8_t Score(std::uint32_t i) const {
+  std::uint8_t Score(std::uint32_t i) const noexcept {
     if (is_reverse_complement) {
       i = inflated_len - i - 1;
     }
@@ -200,7 +200,7 @@ class NucleicAcid {
     return dst;
   }
 
-  void ReverseAndComplement() {  // Watson-Crick base pairing
+  void ReverseAndComplement() noexcept {  // Watson-Crick base pairing
     is_reverse_complement ^= 1;
   }
 
@@ -214,8 +214,14 @@ class NucleicAcid {
   std::vector<std::uint32_t> qlvl;
   std::uint32_t inflated_len;
   bool is_reverse_complement;
-};
 
+ private:
+  static constexpr std::uint32_t kBlockSize = 128;
+  static constexpr std::uint32_t kLvlsCap = 4;
+
+  using FreqsBufType = std::array<std::uint8_t, kBlockSize>;
+  using LvlsBuftype = std::array<std::uint8_t, kLvlsCap>;
+};
 }  // namespace exp
 }  // namespace biosoup
 
