@@ -1,4 +1,4 @@
-import shutil, os, subprocess, sys
+import shutil, os, subprocess, sys, shutil
 
 from pathlib import Path
 from setuptools import Extension, setup
@@ -16,6 +16,10 @@ class CMakeBuild(build_ext):
     install_dir = Path(self.get_ext_fullpath(ext.name)).absolute().parent
     source_dir = Path(__file__).absolute().parent
     build_dir = Path(self.build_temp).absolute()
+
+    if build_dir.exists():
+      shutil.rmtree(build_dir)
+      build_dir.mkdir()
 
     cfg_args = [
       f'-H {source_dir}',

@@ -15,6 +15,9 @@ PYBIND11_MODULE(biosouppy, m) {
       .def(py::init<const std::string&, const std::string&>())
       .def(py::init<const std::string&, const std::string&,
                     const std::string&>())
+      .def("__deepcopy__",
+           [](const biosoup::NucleicAcid& seq,
+              py::dict) -> biosoup::NucleicAcid { return seq; })
       .def("code", &biosoup::NucleicAcid::Code)
       .def("score", &biosoup::NucleicAcid::Score)
       .def("inflate_data", &biosoup::NucleicAcid::InflateData,
