@@ -55,7 +55,7 @@ setup(
   author='Robert Vaser',
   author_email='robert.vaser@gmail.com',
   maintainer='Tvrtko Brekalo',
-  maintainer_email='brekalo.tvrtko@gmail.com'
+  maintainer_email='brekalo.tvrtko@gmail.com',
   ext_modules=[CMakeExtension(EXTENSION_NAME)],
   cmdclass={'build_ext': CMakeBuild},
   zip_safe=False,
