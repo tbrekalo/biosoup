@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.11)
-
 project(biosoup VERSION 0.10.1
                 LANGUAGES CXX
                 DESCRIPTION "Biosoup is a c++ collection of header only data structures used for storage and logging in bioinformatics tools.")
@@ -16,13 +15,17 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 if (CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
   set(biosoup_main_project ON)
 endif ()
-option(biosoup_install "Generate install target" ${biosoup_main_project})
-option(biosoup_build_tests "Build unit tests" ${biosoup_main_project})
 
+option(biosouppy "Generate python bindings for nucleic_acid" OFF)
+option(biosouppy_ext_dir "Used by setup.py")
+
+option(biosoup_install "Generate install target" OFF)
+option(biosoup_build_tests "Build unit tests" OFF)
+
+include(FetchContent)
 if (biosoup_build_tests)
   find_package(GTest 1.10.0 QUIET)
   if (NOT GTest_FOUND)
-    include(FetchContent)
 
     FetchContent_Declare(
       googletest
@@ -41,12 +44,45 @@ if (biosoup_build_tests)
   endif ()
 endif ()
 
+if (biosouppy)
+  find_package(pybind11 2.9.1 QUIET)
+  if (NOT pybind11_FOUND)
+    FetchContent_Declare(
+      pybind11
+      GIT_REPOSITORY https://github.com/pybind/pybind11.git
+      GIT_TAG v2.9.1)
+
+    FetchContent_GetProperties(pybind11)
+    if (NOT pybind11_POPULATED)
+      FetchContent_Populate(pybind11) 
+      add_subdirectory(
+        ${pybind11_SOURCE_DIR}
+        ${pybind11_BINARY_DIR}
+        EXCLUDE_FROM_ALL)
+    endif ()
+  endif ()
+endif ()
+
 add_library(biosoup INTERFACE)
 add_library(${PROJECT_NAME}::biosoup ALIAS biosoup)
 
 target_include_directories(biosoup INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+
+if (biosouppy)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
+
+  pybind11_add_module(biosouppy
+    ${PROJECT_SOURCE_DIR}/pybind/main.cc)
+  target_link_libraries(biosouppy PRIVATE biosoup)
+  add_library(${PROJECT_NAME}::biosouppy ALIAS biosouppy)
+  
+  if (biosouppy_ext_dir)
+    install(TARGETS biosouppy
+            LIBRARY DESTINATION ${biosouppy_ext_dir})
+  endif()
+endif ()
 
 if (biosoup_install)
   include(GNUInstallDirs)
