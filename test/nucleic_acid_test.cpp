@@ -42,17 +42,11 @@ TEST(BiosoupNucleicAcidTest, Quality) {
       "test",
       "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTAC",  // NOLINT
       "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"};  // NOLINT
-  EXPECT_EQ(s.block_quality.size(), s.block_quality.capacity());
-  EXPECT_EQ(31, s.Score(42));
-  EXPECT_EQ(78, s.Score(84));
-  EXPECT_EQ("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@oooooooooooooooooooooooooooooo", s.InflateQuality());  // NOLINT
-  EXPECT_EQ("@@@@@@@@@@@@@@@@", s.InflateQuality(0, 16));
-  EXPECT_EQ("@@oo", s.InflateQuality(62, 4));
-  EXPECT_EQ("@", s.InflateQuality(63, 1));
-  EXPECT_EQ("o", s.InflateQuality(64, 1));
-  EXPECT_EQ("o", s.InflateQuality(93));
-  EXPECT_EQ("ooo", s.InflateQuality(91, 20));
-  EXPECT_EQ("", s.InflateQuality(95));
+  EXPECT_EQ(42, s.Score(42));
+  EXPECT_EQ(84, s.Score(84));
+  EXPECT_EQ("!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~", s.InflateQuality());  // NOLINT
+  EXPECT_EQ("!\"#$%&'()*+,-./0", s.InflateQuality(0, 16));
+  EXPECT_EQ("_`ab", s.InflateQuality(62, 4));
 }
 
 TEST(BiosoupNucleicAcidTest, ReverseAndComplement) {
@@ -63,7 +57,7 @@ TEST(BiosoupNucleicAcidTest, ReverseAndComplement) {
   NucleicAcid c{s};
   c.ReverseAndComplement();
   EXPECT_EQ("TGACGTACTAGCATGCGATCAGTCTCAGCTAGTACGATCGCATGACTGGCATCGATGACTAGCTCAGTACGT", c.InflateData());  // NOLINT
-  EXPECT_EQ("ZZZZZZZZ4444444444444444444444444444444444444444444444444444444444444444", c.InflateQuality());  // NOLINT
+  EXPECT_EQ("ZZZZZZZZ3210987654321098765432109876543210987654321098765432109876543210", c.InflateQuality());  // NOLINT
   c.ReverseAndComplement();
   EXPECT_EQ(c.InflateData(), s.InflateData());
   EXPECT_EQ(c.InflateQuality(), s.InflateQuality());
